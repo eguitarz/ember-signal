@@ -1,0 +1,1 @@
+export { default, Task } from 'ember-signal/task';
