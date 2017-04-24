@@ -26,7 +26,7 @@ class Pipeline {
         signal = yield runnerGen.next().value;
         
         if (signal === undefined) {
-          task.set('status', 'suspend');
+          this.suspend(task);
           return;
         }
 
@@ -35,9 +35,17 @@ class Pipeline {
       }
 
       set(this, 'output', signal);
-      let next = get(this, 'next');
-      if (next) { next.run(signal); }
+      this.afterRun(signal);
     }.bind(this))();
+  }
+
+  suspend(task) {
+    task.set('status', 'suspended');
+  }
+
+  afterRun(signal) {
+    let next = get(this, 'next');
+    if (next) { next.run(signal); }
   }
 
   signal(sigs, interval=0) {
@@ -56,14 +64,15 @@ class Pipeline {
 
   applyMiddleware(middleware) {
     middleware.applicant = this;
+
     this._run = this.run;
     this.run = middleware.onInput.bind(middleware);
-    if (this.next) {
-      this._next = this.next;
-      this.next = {
-        run: middleware.onOutput.bind(middleware)
-      }
-    }
+
+    this._suspend = this.suspend;
+    this.suspend = middleware.onSuspend.bind(middleware);
+    
+    this._afterRun = this.afterRun;
+    this.afterRun = middleware.onOutput.bind(middleware);
   }
 }
 

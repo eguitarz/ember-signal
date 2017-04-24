@@ -15,10 +15,16 @@ class Buffer {
     this.applicant._run(signal);
   }
 
+  onSuspend(task) {
+    this.running--;
+    this.applicant._suspend(task);
+    console.log('buffer running', this.running);
+  }
+
   onOutput(signal) {
     this.running--;
     console.log('buffer running', this.running);
-    this.applicant._next.run(signal);
+    this.applicant._afterRun(signal);
   }
   
 }
@@ -55,7 +61,7 @@ export default Ember.Controller.extend({
     let { t1, t2, t3, t4 } = this.getProperties('t1', 't2', 't3', 't4');
     let pipeline = new Pipeline([t1, t2, t3, t4]);
     let pipeline2 = new Pipeline([t1, t1]);
-    wire(pipeline, pipeline2);
+    // wire(pipeline, pipeline2);
     pipeline.applyMiddleware(new Buffer(1));
     this.set('pipeline', pipeline);
     this.set('pipeline2', pipeline2);
