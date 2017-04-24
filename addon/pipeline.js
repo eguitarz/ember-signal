@@ -53,6 +53,18 @@ class Pipeline {
       }
     })();
   }
+
+  applyMiddleware(middleware) {
+    middleware.applicant = this;
+    this._run = this.run;
+    this.run = middleware.onInput.bind(middleware);
+    if (this.next) {
+      this._next = this.next;
+      this.next = {
+        run: middleware.onOutput.bind(middleware)
+      }
+    }
+  }
 }
 
 export default Pipeline;

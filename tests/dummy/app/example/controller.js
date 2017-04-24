@@ -3,6 +3,26 @@ import Task from 'ember-signal/task';
 import Pipeline from 'ember-signal/pipeline';
 import { wire } from 'ember-signal/utils';
 
+class Buffer {
+  constructor(n=1) {
+    this.running = 0;
+    this.size = n;
+  }
+
+  onInput(signal) {
+    this.running++;
+    console.log('buffer running', this.running);
+    this.applicant._run(signal);
+  }
+
+  onOutput(signal) {
+    this.running--;
+    console.log('buffer running', this.running);
+    this.applicant._next.run(signal);
+  }
+  
+}
+
 export default Ember.Controller.extend({
   t1: Task.create({
     fn: function() {
@@ -36,6 +56,7 @@ export default Ember.Controller.extend({
     let pipeline = new Pipeline([t1, t2, t3, t4]);
     let pipeline2 = new Pipeline([t1, t1]);
     wire(pipeline, pipeline2);
+    pipeline.applyMiddleware(new Buffer(1));
     this.set('pipeline', pipeline);
     this.set('pipeline2', pipeline2);
   },
