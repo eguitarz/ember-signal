@@ -1,5 +1,7 @@
 import Ember from 'ember';
-import { resolvePromise } from 'ember-signal/utils';
+import { 
+  resolvePromise 
+} from 'ember-signal/utils';
 
 const { 
   get,
@@ -7,11 +9,23 @@ const {
 } = Ember;
 
 class Pipeline {
-  constructor(tasks) {
+  constructor(tasks, buffer) {
     this.tasks = tasks;
+    this.buffer = buffer;
   }
 
-  run(signal) {
+  run(signal=true) {
+    let { buffer } = this;
+    if (buffer) {
+      signal = buffer.onInput(signal);
+    }
+
+    if (signal !== undefined) {
+      this._run(signal);
+    }
+  }
+
+  _run(signal) {
     let taskGen = (function* () { 
       yield* this.tasks; 
     }.bind(this))();
@@ -24,26 +38,22 @@ class Pipeline {
         let task = _task.value;
         let runnerGen = task.run(signal);
         signal = yield runnerGen.next().value;
-        
-        if (signal === undefined) {
-          this.suspend(task);
-          return;
-        }
 
         runnerGen.next(signal);
         _task = taskGen.next();
       }
 
       set(this, 'output', signal);
-      this.afterRun(signal);
+      this.buffer.onOutput();
+      this.onOutput(signal);
+
+      if (!this.buffer.isQueueEmpty()) {
+        this.run(this.buffer.shift());
+      }
     }.bind(this))();
   }
 
-  suspend(task) {
-    task.set('status', 'suspended');
-  }
-
-  afterRun(signal) {
+  onOutput(signal) {
     let next = get(this, 'next');
     if (next) { next.run(signal); }
   }
@@ -60,19 +70,6 @@ class Pipeline {
         Ember.run.later(self, run, interval);
       }
     })();
-  }
-
-  applyMiddleware(middleware) {
-    middleware.applicant = this;
-
-    this._run = this.run;
-    this.run = middleware.onInput.bind(middleware);
-
-    this._suspend = this.suspend;
-    this.suspend = middleware.onSuspend.bind(middleware);
-    
-    this._afterRun = this.afterRun;
-    this.afterRun = middleware.onOutput.bind(middleware);
   }
 }
 
