@@ -33,8 +33,8 @@ export default Ember.Controller.extend({
   init() {
     this._super(...arguments);
     let { t1, t2, t3, t4 } = this.getProperties('t1', 't2', 't3', 't4');
-    let pipeline = new Pipeline([t1, t2, t3, t4]);
-    let pipeline2 = new Pipeline([t1, t1]);
+    let pipeline = new Pipeline([t1, t2, t3], {maxConcurrency: 1, policy: 'queue'});
+    let pipeline2 = new Pipeline([t4]);
     wire(pipeline, pipeline2);
     this.set('pipeline', pipeline);
     this.set('pipeline2', pipeline2);
@@ -46,7 +46,7 @@ export default Ember.Controller.extend({
     },
 
     signal() {
-      this.get('pipeline').signal(['h', 'e', 'l', 'l', 'o'], 1000);
+      this.get('pipeline').signal(['h', 'e', 'l', 'l', 'o'], 100);
     }
   }
 });

@@ -18,7 +18,6 @@ export default Ember.Object.extend({
 
       this.set('output', signal);
     } catch (e) {
-      console.error(e);
 
       this.set('status', 'error');
       if (this.errorHandler) {
